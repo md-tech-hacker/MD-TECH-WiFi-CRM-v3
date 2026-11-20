@@ -15,6 +15,7 @@ from .db import now
 _lock = Lock()
 _cached = None
 _cached_at = 0
+CREATE_NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
 
 def probe_router(management_ip, ports=(80, 443)):
@@ -40,7 +41,8 @@ def open_windows_settings(page):
     pages={'location':'ms-settings:privacy-location','wifi':'ms-settings:network-wifi','ethernet':'ms-settings:network-ethernet'}
     if page not in pages or platform.system() != 'Windows':
         raise ValueError('This action is available only for supported Windows settings pages')
-    os.startfile(pages[page])
+    if hasattr(os, 'startfile'):
+        os.startfile(pages[page])
     return {'opened': True, 'page': page, 'permission_granted': False,
             'message': 'Windows settings opened. Review the permission there, then recheck network access.'}
 
@@ -61,7 +63,7 @@ def inspect_host_network(force=False):
         try:
             script = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $svc=Get-Service WlanSvc -ErrorAction SilentlyContinue; @{interfaces=@(Get-CimInstance Win32_NetworkAdapterConfiguration -Filter 'IPEnabled=True' | Select-Object Description,IPAddress,IPSubnet,DefaultIPGateway,DHCPEnabled,DHCPServer,DNSServerSearchOrder,MACAddress); adapters=@(Get-CimInstance Win32_NetworkAdapter -Filter 'PhysicalAdapter=True' | Select-Object Name,NetConnectionID,NetEnabled,Speed,AdapterType); wlan_service=$(if($svc){$svc.Status.ToString()}else{'NotInstalled'})} | ConvertTo-Json -Compress -Depth 6"
             proc = subprocess.run([str(system32 / 'WindowsPowerShell/v1.0/powershell.exe'), '-NoProfile', '-NonInteractive', '-Command', script],
-                                  capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=8, creationflags=subprocess.CREATE_NO_WINDOW)
+                                  capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=8, creationflags=CREATE_NO_WINDOW)
             if proc.returncode != 0:
                 raise ValueError('Network inventory could not be read')
             inventory = json.loads(proc.stdout.strip() or '{}')
@@ -76,7 +78,7 @@ def inspect_host_network(force=False):
                     'dhcp_enabled': bool(r.get('DHCPEnabled')), 'subnets': r.get('IPSubnet') or [],
                     'dhcp_server': r.get('DHCPServer') or '', 'mac': r.get('MACAddress') or ''})
             wlan = subprocess.run([str(system32 / 'netsh.exe'), 'wlan', 'show', 'interfaces'],
-                                  capture_output=True, text=True, errors='replace', timeout=4, creationflags=subprocess.CREATE_NO_WINDOW)
+                                  capture_output=True, text=True, errors='replace', timeout=4, creationflags=CREATE_NO_WINDOW)
             ssid = re.search(r'^\s*SSID\s*:\s*(.+)$', wlan.stdout, re.MULTILINE)
             if ssid:
                 result['wifi_ssid'] = ssid.group(1).strip()

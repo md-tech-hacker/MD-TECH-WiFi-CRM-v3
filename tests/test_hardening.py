@@ -73,6 +73,7 @@ def test_password_change_invalidates_other_admin_sessions(client, admin):
     assert client.post('/api/auth/password', headers={'X-CSRF-Token':login['csrf']}, json={
         'current_password':'VeryStrongAdminSecret17!', 'new_password':'NewStrongPassword88!'}).status_code == 200
     assert client.get('/api/users').status_code == 200
+    client.cookies.clear()
     client.cookies.set('mdtech_session', old_cookie)
     assert client.get('/api/users').status_code == 401
 

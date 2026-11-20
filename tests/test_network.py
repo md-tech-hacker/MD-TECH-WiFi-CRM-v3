@@ -113,7 +113,7 @@ def test_windows_settings_requires_local_admin_and_csrf(client, admin, monkeypat
 def test_windows_settings_uses_only_fixed_uris(monkeypatch):
     launch=Mock()
     monkeypatch.setattr(network.platform,'system',lambda:'Windows')
-    monkeypatch.setattr(network.os,'startfile',launch)
+    monkeypatch.setattr(network.os,'startfile',launch,raising=False)
     assert network.open_windows_settings('location')['permission_granted'] is False
     launch.assert_called_once_with('ms-settings:privacy-location')
     with pytest.raises(ValueError): network.open_windows_settings('file:///C:/Windows/System32/cmd.exe')
