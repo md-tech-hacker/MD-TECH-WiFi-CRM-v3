@@ -1,6 +1,6 @@
 # MD TECH — Open Wi-Fi CRM & Captive Portal Management
 
-[![CI](https://github.com/md-tech-hacker-boy/MD-TECH-WiFi-CRM-v3/actions/workflows/ci.yml/badge.svg)](https://github.com/md-tech-hacker-boy/MD-TECH-WiFi-CRM-v3/actions)
+[![CI](https://github.com/md-tech-hacker/MD-TECH-WiFi-CRM-v3/actions/workflows/ci.yml/badge.svg)](https://github.com/md-tech-hacker/MD-TECH-WiFi-CRM-v3/actions)
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/router-MikroTik%20%7C%20OpenWrt%20%7C%20pfSense%20%7C%20UniFi%20%7C%20Omada-00599C)]()
@@ -60,7 +60,7 @@ MD TECH Wi-Fi CRM provides a modern light-first web dashboard and guest portal t
 1. Install **Python 3.10 or newer** from [python.org](https://www.python.org/downloads/windows/).
 2. Clone or extract the repository:
    ```cmd
-   git clone https://github.com/md-tech-hacker-boy/MD-TECH-WiFi-CRM-v3.git
+   git clone https://github.com/md-tech-hacker/MD-TECH-WiFi-CRM-v3.git
    cd MD-TECH-WiFi-CRM-v3
    ```
 3. Double-click **`START_WINDOWS.bat`**. It creates a private `.venv`, installs dependencies, and launches the server.
@@ -69,7 +69,7 @@ MD TECH Wi-Fi CRM provides a modern light-first web dashboard and guest portal t
 
 ### Option 2: Linux & macOS
 ```bash
-git clone https://github.com/md-tech-hacker-boy/MD-TECH-WiFi-CRM-v3.git
+git clone https://github.com/md-tech-hacker/MD-TECH-WiFi-CRM-v3.git
 cd MD-TECH-WiFi-CRM-v3
 chmod +x start_linux.sh
 ./start_linux.sh
@@ -77,7 +77,7 @@ chmod +x start_linux.sh
 
 ### Option 3: Docker & Docker Compose
 ```bash
-git clone https://github.com/md-tech-hacker-boy/MD-TECH-WiFi-CRM-v3.git
+git clone https://github.com/md-tech-hacker/MD-TECH-WiFi-CRM-v3.git
 cd MD-TECH-WiFi-CRM-v3
 docker compose up -d
 ```
