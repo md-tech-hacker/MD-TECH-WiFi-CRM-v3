@@ -156,6 +156,24 @@ This generates obvious **synthetic** traffic for testing. Do not mistake it for 
 
 ## Router telemetry and deployment profile
 
+Version 3.1: `/api/network/host` returns read-only observations of the **CRM host**,
+not a router discovered elsewhere. It requires an administrator session, caches for
+20 seconds and never reads Wi-Fi passwords. Windows location permission or WLAN
+service availability can limit the SSID/radio information. Browser Windows-settings
+links open on the computer using the browser; host observations run on the server.
+
+`POST /api/network/check` requires admin + CSRF and uses the saved management IP.
+It checks TCP ports 80/443 only, with a 1.5-second timeout per port, at most six
+checks per minute per administrator. It accepts RFC1918 IPv4 targets only; loopback,
+link-local/metadata, public addresses and arbitrary hostnames/ports are rejected.
+Success means a TCP web-admin port responded; identity, credentials and control
+are **not** verified. No HTTP requests or passwords are sent by this check.
+
+`POST /api/policies/preview` requires admin + CSRF and runs the gateway decision
+engine without binding, admitting or modifying any device. `enforcement` is
+`not-applied`. The generic portal's `ssid` field now contains only a fresh enabled
+gateway report (or empty), while `network_label` carries manual portal branding.
+
 `POST /api/integrations/heartbeat` requires `X-Gateway-Key` and accepts:
 
 ```json

@@ -1,5 +1,19 @@
 # Security review and changes — 18 October 2026
 
+## 3.1 additions
+
+The new host inventory endpoint requires admin authentication, executes only fixed
+Windows commands without a shell/user-provided command text, excludes saved Wi-Fi
+keys and does not expose its raw command output. The LAN web-port check requires
+admin + CSRF, a saved RFC1918 IP, fixed ports/timeouts and a rate limit. It never
+follows URLs, redirects or supplies router credentials. Its response distinguishes
+reachability from device identity. Policy previews use the existing authorization
+engine and have no network side effects. Browser options are rendered as text;
+manual labels never substitute for observed SSIDs.
+
+Windows deep links require the person at the browser to complete any permission
+prompt. No Windows permissions, services or physical router settings were changed.
+
 Reviewed using the installed `claude-security` skill (Codex-compatible adaptation
 of the Claude Security guidance). Scope: local launcher, FastAPI authentication,
 admin CRUD, portal, session binding, gateway authorization, CSV exports and changed

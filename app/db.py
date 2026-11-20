@@ -128,7 +128,7 @@ def init_db():
         if 'bind_token_hash' not in columns:
             conn.execute("ALTER TABLE guest_sessions ADD COLUMN bind_token_hash TEXT NOT NULL DEFAULT ''")
         defaults = {
-            'site_name': 'MD TECH', 'ssid': 'MD_TECH', 'portal_title': 'Welcome to MD TECH Wi-Fi',
+            'site_name': 'MD TECH', 'ssid': '', 'portal_title': 'Welcome to MD TECH Wi-Fi',
             'portal_message': 'Connect securely using your account or access code.',
             'gateway_enabled': '0', 'gateway_key_hash': '', 'gateway_label': 'Not connected'
         }

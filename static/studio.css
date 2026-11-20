@@ -148,6 +148,13 @@ body{background:#f6f8fc;letter-spacing:-.08px}
 .portal-card .seg-tabs{border-radius:12px;background:#f1f5fd}.portal-card .seg-tabs button.selected{color:#3468de}
 .portal-card input:focus{outline:3px solid #cbdcff;border-color:#6c94ee}.portal-card{border-radius:22px;box-shadow:0 25px 55px #213d7110}
 /* Router workspace and local SVG assets. */
+.router-controls{margin-bottom:24px}.router-boundary{font-size:13px;line-height:1.8;color:#63748c;margin:0 0 20px}
+.connection-start{margin-bottom:24px}.windows-settings,.router-connection-actions{display:flex;gap:10px;flex-wrap:wrap}.windows-settings{margin-top:18px}.connection-start .helper{line-height:1.8}.router-controls .decision-result{margin:0 0 20px}
+.router-control-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.router-control-item{display:flex;gap:13px;align-items:flex-start;padding:16px;border:1px solid #e7edf7;background:#fbfcff;border-radius:11px}.router-control-item>span{color:#5074cf;margin-top:2px}.router-control-item div{flex:1}.router-control-item strong{font-size:12px;color:#2c4160}.router-control-item p{font-size:11px;line-height:1.65;color:#8190a6;margin:5px 0 0}.router-control-item a{color:#4d75d9}
+.host-network-panel{margin-top:24px}.host-ssid{display:flex;align-items:center;gap:14px;padding:16px;background:#f4f7ff;border-radius:12px}.host-ssid>span{color:#4a70d8}.host-ssid div{flex:1}.host-ssid small{display:block;color:#7b8ca7;font-size:11px;margin-bottom:4px}.host-ssid strong{font-size:14px;color:#2a4062}
+#network-form{margin-top:20px}.workspace-copy b,.workspace-copy small{max-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:770px){.router-control-grid{grid-template-columns:1fr}.router-controls .panel-head{align-items:flex-start;flex-direction:column}.host-ssid{flex-wrap:wrap}}
+.table-tools{flex-wrap:wrap;gap:12px}.record-filter{width:165px;min-width:130px}.record-filter .field{margin:0}.record-filter label{font-size:10px;margin-bottom:5px}.record-filter .choice-trigger{min-height:35px;padding:8px 10px;font-size:11px}.table-tools-meta{margin-left:auto}.decision-result{border-radius:11px;padding:17px;margin-top:20px;font-size:12px;line-height:1.7}.decision-result p{margin:6px 0}.decision-allow{background:#effaf4;color:#1c7852;border:1px solid #c6e9d6}.decision-deny{background:#fff3f5;color:#ad3c53;border:1px solid #f1d2da}
 .app-monogram img{display:block;width:28px;height:28px;object-fit:contain}
 .app-domains{margin-top:12px;color:var(--muted,#65748b);font-size:12px}
 .app-domains summary{cursor:pointer;font-weight:600}

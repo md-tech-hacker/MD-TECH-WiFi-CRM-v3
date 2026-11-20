@@ -6,6 +6,18 @@ region, subnet, management address and administrator access are not yet verified
 
 ## Your existing router
 
+In CRM 3.1, **Router & network** opens immediately after sign-in. First inspect the
+computer's real connection, then enter/save the router address, test it and open
+its administration page. The Windows settings links help with Wi-Fi, Ethernet and
+location permissions. They cannot add missing Wi-Fi hardware or override Windows
+permissions. A remote CRM host cannot discover a router behind your browser's LAN.
+
+The [V14 FAQ](https://www.tp-link.com/us/user-guides/tl-wr841n_v14/faq) documents
+`http://tplinkwifi.net/` and factory LAN address `192.168.0.1`. The CRM offers these
+as unverified suggestions; `192.168.1.1` is an alternative used by TP-Link routers.
+It does not silently claim either address is yours. The router card includes menu
+paths from the V14 manual. Firmware-specific internal URL paths are not assumed.
+
 The [TP-Link V14 manual](https://www.tp-link.com/us/user-guides/tl-wr841n_v14/chapter-2-connect-to-the-internet)
 documents Wireless Router, WISP, Range Extender and Access Point modes.
 The [WISP configuration guide](https://www.tp-link.com/us/user-guides/tl-wr841n_v14/chapter-5-configure-the-router-in-wisp-mode)

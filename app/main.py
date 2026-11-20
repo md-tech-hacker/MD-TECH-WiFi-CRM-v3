@@ -24,9 +24,11 @@ from pydantic import BaseModel, Field, field_validator
 
 from .db import DATA_DIR, ROOT, db, init_db, log, now, put_setting, row, rows, setting
 from .policy import APP_DOMAINS, decide
+from .network import inspect_host_network, probe_router
 from .security import hash_password, new_token, rate_allowed, token_hash, utc_after, verify_password, voucher_digest
 
 COOKIE = 'mdtech_session'
+VERSION = '3.1.0'
 MAX_SESSION_MIN = 12 * 60
 DUMMY_PASSWORD_HASH = hash_password(new_token())
 MAC_RE = re.compile(r'^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$')
@@ -36,7 +38,7 @@ async def lifespan(application: FastAPI):
     yield
 
 
-app = FastAPI(title='MD TECH Open Wi-Fi CRM', version='1.0.0', docs_url='/api/docs', redoc_url=None, lifespan=lifespan)
+app = FastAPI(title='MD TECH Open Wi-Fi CRM', version=VERSION, docs_url='/api/docs', redoc_url=None, lifespan=lifespan)
 app.mount('/static', StaticFiles(directory=str(ROOT / 'static')), name='static')
 
 
@@ -165,7 +167,7 @@ class PolicyIn(BaseModel):
 
 class SettingsIn(BaseModel):
     site_name: str = Field(min_length=1, max_length=80)
-    ssid: str = Field(min_length=1, max_length=32)
+    ssid: str = Field(default='', max_length=32)
     portal_title: str = Field(min_length=1, max_length=120)
     portal_message: str = Field(default='', max_length=300)
     gateway_enabled: bool = False
@@ -215,6 +217,9 @@ class NetworkProfile(BaseModel):
     platform: Literal['unconfigured', 'tplink_wr841n_v14', 'mikrotik', 'openwrt', 'opnsense', 'omada', 'other'] = 'unconfigured'
     router_name: str = Field(default='', max_length=100)
     management_ip: str = Field(default='', max_length=45)
+    upstream_ssid: str = Field(default='', max_length=32)
+    operating_mode: Literal['unknown', 'ap', 'wisp', 'router', 'extender'] = 'unknown'
+    firmware_version: str = Field(default='', max_length=100)
     guest_vlan: int | None = Field(default=None, ge=1, le=4094)
     notes: str = Field(default='', max_length=1000)
 
@@ -240,7 +245,7 @@ def portal():
 
 @app.get('/api/health')
 def health():
-    return {'status': 'ok', 'version': '1.0.0'}
+    return {'status': 'ok', 'version': VERSION}
 
 
 @app.get('/api/auth/status')
@@ -608,7 +613,8 @@ def generate_gateway_key(a=Depends(write_auth)):
 @app.get('/api/portal/config')
 def guest_config():
     with db() as conn:
-        return {key: setting(conn, key) for key in ('site_name','ssid','portal_title','portal_message')}
+        return {key: setting(conn, key) for key in ('site_name','portal_title','portal_message')} | {
+            'ssid': network_status(conn)['observed_ssid'] or '', 'network_label': setting(conn, 'ssid')}
 
 
 def upsert_seen(conn, mac, name='', ip='', source='gateway'):
@@ -617,7 +623,8 @@ def upsert_seen(conn, mac, name='', ip='', source='gateway'):
     existing = conn.execute('SELECT id FROM devices WHERE mac=?', (mac,)).fetchone()
     if existing:
         conn.execute('''UPDATE devices SET last_seen=?,ip=CASE WHEN ?<>'' THEN ? ELSE ip END,
-             name=CASE WHEN ?<>'' THEN ? ELSE name END WHERE id=?''', (now(), ip, ip, name, name, existing['id']))
+             name=CASE WHEN ?<>'' THEN ? ELSE name END,
+             source=CASE WHEN ?='gateway' THEN 'gateway' ELSE source END WHERE id=?''', (now(), ip, ip, name, name, source, existing['id']))
         return existing['id']
     return conn.execute('''INSERT INTO devices(mac,name,ip,source,first_seen,last_seen)
                       VALUES(?,?,?,?,?,?)''', (mac, name or mac, ip, source, now(), now())).lastrowid
@@ -680,7 +687,11 @@ def network_status(conn):
     heartbeat = json.loads(raw) if raw else None
     age = max(0, int((datetime.now(timezone.utc) - datetime.fromisoformat(heartbeat['received_at'])).total_seconds())) if heartbeat else None
     enabled = setting(conn, 'gateway_enabled') == '1'
-    return {'profile': profile, 'telemetry': heartbeat, 'age_seconds': age,
+    management_ip = profile.get('management_ip', '')
+    management_url = ('http://[' + management_ip + ']/' if ':' in management_ip else 'http://' + management_ip + '/') if management_ip and '%' not in management_ip else None
+    connection = json.loads(setting(conn, 'router_connection_check', 'null'))
+    return {'profile': profile, 'telemetry': heartbeat, 'age_seconds': age, 'management_url': management_url, 'connection_check': connection,
+            'observed_ssid': heartbeat.get('ssid') if heartbeat and enabled and age <= 90 else None,
             'status': 'disabled' if not enabled else ('not_reporting' if heartbeat is None else ('reporting' if age <= 90 else 'stale')),
             'gateway_enabled': enabled, 'enforcement_verified': False}
 
@@ -691,10 +702,41 @@ def get_network(a=Depends(auth)):
         return network_status(conn)
 
 
+@app.get('/api/network/host')
+def get_host_network(a=Depends(auth)):
+    if not rate_allowed('host-network:' + str(a['id']), 12, 60):
+        fail(429, 'Please wait before refreshing host network details')
+    return inspect_host_network()
+
+
+@app.post('/api/network/check')
+def check_router_connection(a=Depends(write_auth)):
+    if not rate_allowed('router-check:' + str(a['id']), 6, 60):
+        fail(429, 'Please wait before testing this connection again')
+    with db() as conn:
+        address = json.loads(setting(conn, 'network_profile', '{}')).get('management_ip', '')
+    if not address:
+        fail(422, 'Enter and save the router management IP first')
+    try:
+        result = probe_router(address)
+    except ValueError as exc:
+        fail(422, str(exc))
+    with db() as conn:
+        # Ignore a probe if another admin request changed the saved target meanwhile.
+        if json.loads(setting(conn, 'network_profile', '{}')).get('management_ip') == address:
+            put_setting(conn, 'router_connection_check', json.dumps(result))
+    return result
+
+
 @app.patch('/api/network')
 def save_network(data: NetworkProfile, a=Depends(write_auth)):
     valid_ip(data.management_ip)
+    if data.management_ip and ('%' in data.management_ip or not ipaddress.ip_address(data.management_ip).is_private or ipaddress.ip_address(data.management_ip).is_unspecified or ipaddress.ip_address(data.management_ip).is_multicast):
+        fail(422, 'Use the router’s private LAN management IP')
     with db() as conn:
+        previous = json.loads(setting(conn, 'network_profile', '{}'))
+        if previous.get('management_ip') != data.management_ip:
+            put_setting(conn, 'router_connection_check', 'null')
         put_setting(conn, 'network_profile', data.model_dump_json())
         log(conn, 'Network profile updated', data.platform, a['username'], 'settings')
     return {'ok': True}
@@ -799,6 +841,13 @@ def gateway_authorize(data: GatewayDecision, gateway=Depends(require_gateway)):
                     ).fetchone()[0] >= active['data_limit_mb'] * 1024 * 1024:
                 result = {'allowed': False, 'reason': 'Voucher data quota exceeded', 'policy_id': None}
         return result | {'enforcement': 'gateway-must-apply-decision'}
+
+
+@app.post('/api/policies/preview')
+def preview_policy(data: GatewayDecision, a=Depends(write_auth)):
+    # Evaluate the same engine without admitting devices or modifying firewall state.
+    result = gateway_authorize(data, gateway=True)
+    return result | {'preview_only': True, 'enforcement': 'not-applied'}
 
 
 @app.get('/api/export/{resource}')

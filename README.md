@@ -1,8 +1,28 @@
 # MD TECH — Open Wi-Fi CRM
 
-**Version 3.0: open-source, local-first Wi-Fi account and network policy management with a redesigned light-first web interface.** Runs as a modern browser dashboard on **Windows 11 without Docker, WSL, or Node.js**. Python 3.10+ is the only runtime needed; an internet connection is required the first time to download Python packages.
+**Version 3.1: open-source, local-first Wi-Fi account and network policy management with a redesigned light-first web interface.** Runs as a modern browser dashboard on **Windows 11 without Docker, WSL, or Node.js**. Python 3.10+ is the only runtime needed; an internet connection is required the first time to download Python packages.
 
 > **Important distinction:** This application is a functional CRM, authentication database, guest login portal, policy decision engine, and gateway integration API. **It is not a router, firewall, captive portal redirector, DNS server, or packet interceptor.** It cannot force an unmodified TP-Link TL-WR841N v14 (or any other unsupported router) to redirect guests, block apps, apply speed limits, or disconnect devices. For real enforcement, install/configure a separately compatible gateway and implement the documented integration protocol.
+
+## Version 3.1 — network connection and custom selectors
+
+All selection menus use bundled custom searchable controls, including account status,
+owner assignment, rule action/type/scope, dynamic app/user/device targets, router
+platform/mode/address presets, and record filters/sorting. Login includes inline
+errors and password visibility controls. Sessions show gateway-verification status;
+access policies include a read-only decision preview.
+
+After sign-in, **Router & network** checks the CRM host's actual Windows interfaces.
+It shows Ethernet/Wi-Fi, adapters, addresses, subnet, gateway, DNS, DHCP and any
+available SSID/radio details, plus Windows network/location settings links.
+No Windows permission or router setting is changed automatically. Live SSID areas
+never fall back to a manually typed label.
+
+The same page includes V14 manual configuration paths, labelled factory address
+suggestions, a saved private management IP, a bounded TCP web-port check and links
+to the router's actual admin interface. Successful TCP connection does not prove
+router identity or give the CRM control. Stock WR841N V14 firmware still requires
+its own admin UI; captive enforcement still needs a compatible gateway adapter.
 
 ## October 2026 update
 
