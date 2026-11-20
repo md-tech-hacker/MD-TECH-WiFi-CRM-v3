@@ -70,7 +70,7 @@
   const active=document.activeElement===select,wrapper=document.createElement('div');wrapper.className='choice-control';
   const button=document.createElement('button');button.type='button';button.className='choice-trigger';button.setAttribute('role','combobox');
   const text=document.createElement('span');text.className='choice-value';
-  const arrow=document.createElement('span');arrow.className='choice-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent='⌄';
+  const arrow=document.createElement('span');arrow.className='choice-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent='';
   const id=select.id||'choice-'+(++sequence),listId=id+'-options';
   const label=select.closest('.field')?.querySelector('label');
   button.id=id;select.id=id+'-native';

@@ -2,6 +2,16 @@
 
 ## 3.1 additions
 
+The Windows settings launcher requires administrator authentication, CSRF, a loopback
+client, a rate limit and one of three fixed settings-page identifiers. It cannot
+launch arbitrary paths or commands and never toggles permissions. Rechecks bypass
+the observation cache only on an explicit request. Custom dialogs trap focus and
+default destructive confirmations to Cancel; notifications render text safely.
+
+Windows privacy settings were opened during local UI verification. No Windows
+permission, Wi-Fi service or router configuration was changed.
+
+
 The new host inventory endpoint requires admin authentication, executes only fixed
 Windows commands without a shell/user-provided command text, excludes saved Wi-Fi
 keys and does not expose its raw command output. The LAN web-port check requires

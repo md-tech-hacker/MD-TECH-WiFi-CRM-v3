@@ -26,7 +26,7 @@ def test_saved_label_is_not_live_ssid(client, admin):
 def test_router_probe_requires_csrf_and_saved_address(client, admin, monkeypatch):
     assert client.post('/api/network/check').status_code == 403
     assert client.post('/api/network/check', headers=admin).status_code == 422
-    profile = {'platform':'tplink_wr841n_v14','management_ip':'192.168.50.1','operating_mode':'ap','upstream_ssid':'MUNIRAJ'}
+    profile = {'platform':'tplink_wr841n_v14','management_ip':'192.168.50.1','operating_mode':'ap','upstream_ssid':'Main Wi-Fi'}
     assert client.patch('/api/network', headers=admin, json=profile).status_code == 200
     response = {'target':'192.168.50.1','reachable':True,'reachable_ports':[80],'checked_at':'2026-10-18T12:00:00+00:00','router_identity_verified':False}
     monkeypatch.setattr(api, 'probe_router', lambda address: response)
@@ -84,3 +84,44 @@ def test_manually_enrolled_device_becomes_gateway_reported(client, admin):
     client.post('/api/integrations/event',headers={'X-Gateway-Key':key},json={'type':'device_seen','mac':mac,'ip':'192.168.50.22'})
     device=client.get('/api/devices').json()[0]
     assert device['source']=='gateway' and device['ip']=='192.168.50.22'
+
+
+@pytest.mark.parametrize('mode',['router','ap','wisp','extender'])
+def test_router_role_profile_round_trip(client, admin, mode):
+    profile={'platform':'tplink_wr841n_v14','operating_mode':mode,'management_ip':'192.168.0.1'}
+    assert client.patch('/api/network',headers=admin,json=profile).status_code==200
+    assert client.get('/api/network').json()['profile']['operating_mode']==mode
+
+
+def test_windows_settings_requires_local_admin_and_csrf(client, admin, monkeypatch):
+    from fastapi.testclient import TestClient
+    opened=[]
+    def launch(page):
+        opened.append(page)
+        return {'opened':True,'page':page,'permission_granted':False}
+    monkeypatch.setattr(api,'open_windows_settings',launch)
+    assert client.post('/api/network/windows-settings',json={'page':'location'}).status_code==403
+    result=client.post('/api/network/windows-settings',headers=admin,json={'page':'location'})
+    assert result.status_code==200 and result.json()['permission_granted'] is False
+    assert client.post('/api/network/windows-settings',headers=admin,json={'page':'cmd.exe'}).status_code==422
+    with TestClient(api.app,client=('192.168.50.20',50001)) as remote:
+        remote.cookies.set('mdtech_session',client.cookies.get('mdtech_session'))
+        assert remote.post('/api/network/windows-settings',headers=admin,json={'page':'wifi'}).status_code==403
+    assert opened==['location']
+
+
+def test_windows_settings_uses_only_fixed_uris(monkeypatch):
+    launch=Mock()
+    monkeypatch.setattr(network.platform,'system',lambda:'Windows')
+    monkeypatch.setattr(network.os,'startfile',launch)
+    assert network.open_windows_settings('location')['permission_granted'] is False
+    launch.assert_called_once_with('ms-settings:privacy-location')
+    with pytest.raises(ValueError): network.open_windows_settings('file:///C:/Windows/System32/cmd.exe')
+    assert launch.call_count==1
+
+
+def test_network_recheck_bypasses_cached_observation(client, admin, monkeypatch):
+    inspect=Mock(return_value={'status':'observed','interfaces':[]})
+    monkeypatch.setattr(api,'inspect_host_network',inspect)
+    assert client.get('/api/network/host?refresh=true').status_code==200
+    inspect.assert_called_once_with(force=True)

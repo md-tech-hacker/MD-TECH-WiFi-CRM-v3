@@ -35,10 +35,19 @@ def probe_router(management_ip):
             'message': 'A web administration port responded. Router identity and login are not verified.' if reachable else 'No web administration port responded. Check the IP, connection, firewall and router power.'}
 
 
-def inspect_host_network():
+def open_windows_settings(page):
+    pages={'location':'ms-settings:privacy-location','wifi':'ms-settings:network-wifi','ethernet':'ms-settings:network-ethernet'}
+    if page not in pages or platform.system() != 'Windows':
+        raise ValueError('This action is available only for supported Windows settings pages')
+    os.startfile(pages[page])
+    return {'opened': True, 'page': page, 'permission_granted': False,
+            'message': 'Windows settings opened. Review the permission there, then recheck network access.'}
+
+
+def inspect_host_network(force=False):
     global _cached, _cached_at
     with _lock:
-        if _cached is not None and time.monotonic() - _cached_at < 20:
+        if not force and _cached is not None and time.monotonic() - _cached_at < 20:
             return _cached
         result = {'source': 'crm_host_operating_system', 'observed_at': now(),
                   'interfaces': [], 'wifi_ssid': None, 'router_identity_verified': False,

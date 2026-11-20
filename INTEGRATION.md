@@ -188,3 +188,17 @@ capabilities are captive_portal, disconnect, dns_filter, traffic and rate_limit.
 `PATCH /api/network` is admin/CSRF-protected and stores planning fields only; it
 does not contact arbitrary hosts or change the router. See ROUTER_SETUP.md for
 the WR841N V14 topology and researched platform choices.
+
+### Windows permission actions (3.1.1)
+
+`POST /api/network/windows-settings` accepts `{"page":"location"}`, `wifi` or
+`ethernet`. It requires a local-loopback administrator session and CSRF, and opens
+only the matching Windows settings URI. The response explicitly reports
+`permission_granted:false`: opening settings is not consent.
+`GET /api/network/host?refresh=true` bypasses the short observation cache for an
+explicit recheck while retaining authentication and rate limiting. Remote admins
+should use their own Windows settings links rather than launch settings on a server.
+
+References: [Microsoft settings URIs](https://learn.microsoft.com/en-us/windows/apps/develop/launch/launch-settings),
+[Windows Wi-Fi/location access](https://learn.microsoft.com/en-us/windows/win32/nativewifi/wi-fi-access-location-changes),
+[WAI modal dialog guidance](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/).

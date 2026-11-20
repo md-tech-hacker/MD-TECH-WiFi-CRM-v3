@@ -1,8 +1,23 @@
 # MD TECH network deployment
 
 Research checked: 18 October 2026. User-confirmed equipment: TP-Link TL-WR841N,
-hardware V14; guest SSID `MD_TECH`; upstream Wi-Fi `MUNIRAJ`. Installed firmware,
+hardware V14; guest SSID `MD_TECH`; the main Wi-Fi connection. Installed firmware,
 region, subnet, management address and administrator access are not yet verified.
+
+## Choose the role you actually use
+
+The CRM role selector covers all four modes in the
+[official V14 connection guide](https://www.tp-link.com/us/user-guides/tl-wr841n_v14/chapter-2-connect-to-the-internet):
+main router (internet cable/modem), wired access point, wireless internet uplink,
+and Wi-Fi extender. Selecting a role changes the displayed steps and documentation
+link. The existing Wi-Fi name field is shown only for the two wireless-uplink roles.
+Your selected role is saved with the CRM connection profile; hardware mode changes
+are still made in the router admin page. No particular main Wi-Fi name is assumed.
+
+In access point or extender mode, the router can receive a management address
+from the existing network. Check that network's client list if the factory address
+no longer works. Website-control guidance is separated from device filtering in
+these modes; guest enforcement must still run on the actual gateway.
 
 ## Your existing router
 
@@ -34,7 +49,7 @@ enforcement gateway. The CRM does not flash firmware or scrape router passwords.
 ## Recommended topology
 
 ```text
-Internet / MUNIRAJ upstream router
+Internet / main Wi-Fi router
              |
        wired uplink, or separate Wi-Fi client bridge
              |
@@ -51,11 +66,11 @@ Internet / MUNIRAJ upstream router
 All guest internet traffic must cross the enforcement gateway. A CRM laptop sitting
 beside the router cannot enforce authentication on other devices.
 
-If only wireless `MUNIRAJ` access is available, choose an upstream client bridge or
+If only access to the main Wi-Fi network is available, choose an upstream client bridge or
 a gateway with a supported Wi-Fi WAN. Do not assume the WR841N can simultaneously
 provide its current WISP uplink and act as an isolated AP behind another gateway.
 Avoid placing the WR841N's NAT between guests and the enforcement gateway: it
-can hide individual device identities. Keep guests off the upstream `MUNIRAJ` SSID.
+can hide individual device identities. Keep guests off the main Wi-Fi network.
 
 ## Platform comparison
 

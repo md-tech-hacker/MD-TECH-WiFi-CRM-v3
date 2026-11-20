@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.1 — Router setup, toolbar and feedback fixes
+
+- Replace browser confirmations with keyboard-accessible custom dialogs; add dismissible notifications with icons and timeout indicators.
+- Correct settings help-text width, panel spacing and wrapped API links.
+- Add a local-admin Windows settings action and an uncached network-permission recheck; opening settings never marks consent as granted.
+- Add role-specific setup instructions for main router, wired access point, wireless uplink and Wi-Fi extender; use plain-language actions throughout.
+- Align search/filter/sort labels and controls; replace the dropdown text glyph with a centered chevron and verify menu placement.
+- Remove the fixed upstream Wi-Fi name from prompts, autofill and setup examples; preserve user-saved connection details.
+
 ## 3.1.0 — Network connection workflow and custom controls
 
 - Replace visible native dropdowns with a shared searchable custom control throughout forms and records, including dynamic scope and app selections; support keyboard navigation, Escape, form validation and reset.
@@ -20,7 +29,7 @@
 - Compact desktop navigation and show the configured SSID label.
 - Harden first-run setup, account/voucher revocation, policy identity, admin session invalidation, rate limiting, CSV export and device updates.
 - Require an atomic one-time proof for gateway session binding; update adapters before upgrading.
-- Document the WR841N V14 / MD_TECH / MUNIRAJ deployment path and platform comparison in ROUTER_SETUP.md.
+- Document the WR841N V14 guest Wi-Fi deployment path and platform comparison in ROUTER_SETUP.md.
 - Add regression tests and verify the UI in an isolated browser instance. No physical gateway adapter or router configuration is included.
 
 ## 3.0 — Frontend expansion

@@ -4,7 +4,9 @@
 
 > **Important distinction:** This application is a functional CRM, authentication database, guest login portal, policy decision engine, and gateway integration API. **It is not a router, firewall, captive portal redirector, DNS server, or packet interceptor.** It cannot force an unmodified TP-Link TL-WR841N v14 (or any other unsupported router) to redirect guests, block apps, apply speed limits, or disconnect devices. For real enforcement, install/configure a separately compatible gateway and implement the documented integration protocol.
 
-## Version 3.1 — network connection and custom selectors
+## Version 3.1.1 — network connection, custom controls and feedback
+
+Confirmations use accessible custom dialogs, and notifications use dismissible status cards. Settings text and search/filter/sort controls share consistent alignment.
 
 All selection menus use bundled custom searchable controls, including account status,
 owner assignment, rule action/type/scope, dynamic app/user/device targets, router
@@ -15,7 +17,7 @@ access policies include a read-only decision preview.
 After sign-in, **Router & network** checks the CRM host's actual Windows interfaces.
 It shows Ethernet/Wi-Fi, adapters, addresses, subnet, gateway, DNS, DHCP and any
 available SSID/radio details, plus Windows network/location settings links.
-No Windows permission or router setting is changed automatically. Live SSID areas
+The Windows network-access dialog can open the actual Windows location/Wi-Fi settings from a local admin session and recheck the result. No Windows permission or router setting is changed automatically. Live SSID areas
 never fall back to a manually typed label.
 
 The same page includes V14 manual configuration paths, labelled factory address
@@ -38,7 +40,7 @@ setup must run locally at `127.0.0.1`. Existing gateway adapters must send the
 one-time `bind_token` at session binding; older unbound sessions need a new login.
 
 Read [ROUTER_SETUP.md](ROUTER_SETUP.md) for your **TL-WR841N V14**, `MD_TECH`
-and upstream `MUNIRAJ`. Read [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for the
+and your main Wi-Fi connection. Read [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for the
 confirmed security fixes and limits. No actual router connector is shipped.
 
 ## 1. Install on Windows — no Docker

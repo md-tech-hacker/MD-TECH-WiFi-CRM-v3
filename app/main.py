@@ -24,11 +24,11 @@ from pydantic import BaseModel, Field, field_validator
 
 from .db import DATA_DIR, ROOT, db, init_db, log, now, put_setting, row, rows, setting
 from .policy import APP_DOMAINS, decide
-from .network import inspect_host_network, probe_router
+from .network import inspect_host_network, probe_router, open_windows_settings
 from .security import hash_password, new_token, rate_allowed, token_hash, utc_after, verify_password, voucher_digest
 
 COOKIE = 'mdtech_session'
-VERSION = '3.1.0'
+VERSION = '3.1.1'
 MAX_SESSION_MIN = 12 * 60
 DUMMY_PASSWORD_HASH = hash_password(new_token())
 MAC_RE = re.compile(r'^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$')
@@ -222,6 +222,10 @@ class NetworkProfile(BaseModel):
     firmware_version: str = Field(default='', max_length=100)
     guest_vlan: int | None = Field(default=None, ge=1, le=4094)
     notes: str = Field(default='', max_length=1000)
+
+
+class WindowsSettingsIn(BaseModel):
+    page: Literal['location', 'wifi', 'ethernet']
 
 
 class GatewayDecision(BaseModel):
@@ -703,10 +707,26 @@ def get_network(a=Depends(auth)):
 
 
 @app.get('/api/network/host')
-def get_host_network(a=Depends(auth)):
+def get_host_network(refresh: bool = False, a=Depends(auth)):
     if not rate_allowed('host-network:' + str(a['id']), 12, 60):
         fail(429, 'Please wait before refreshing host network details')
-    return inspect_host_network()
+    return inspect_host_network(force=True) if refresh else inspect_host_network()
+
+
+@app.post('/api/network/windows-settings')
+def launch_windows_settings(data: WindowsSettingsIn, request: Request, a=Depends(write_auth)):
+    try:
+        local = bool(request.client and ipaddress.ip_address(request.client.host).is_loopback)
+    except ValueError:
+        local = False
+    if not local:
+        fail(403, 'Open Windows settings directly on the computer running this CRM')
+    if not rate_allowed('windows-settings:' + str(a['id']), 8, 60):
+        fail(429, 'Please wait before opening another Windows settings page')
+    try:
+        return open_windows_settings(data.page)
+    except (OSError, ValueError):
+        fail(503, 'Windows settings could not be opened here. Use the Windows settings links on this computer.')
 
 
 @app.post('/api/network/check')
