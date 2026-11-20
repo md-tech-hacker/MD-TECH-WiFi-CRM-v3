@@ -63,8 +63,6 @@ def main():
         stderr=subprocess.DEVNULL,
     )
 
-    auth_file = ROOT / 'static' / 'auth_shot.html'
-
     try:
         # Wait for server startup
         time.sleep(3.5)
@@ -158,33 +156,36 @@ def main():
         urllib.request.urlopen(hb_req, timeout=5)
 
         print('Capturing screenshots with Edge headless...')
-        # Capture Guest Portal
-        run_headless_edge(f'{base}/portal', DOCS_DIR / 'guest_portal.png', Path(edge_profile), budget_ms=1000)
+        # 1. Capture Guest Portal
+        run_headless_edge(f'{base}/portal', DOCS_DIR / 'guest_portal.png', Path(edge_profile), budget_ms=1500)
 
-        # Set cookie in the edge profile
-        auth_file.write_text(f"""<!doctype html><html><body><script>
-            document.cookie = 'mdtech_session={cookie_val}; path=/; max-age=86400';
-            setTimeout(() => {{ window.location.href = '{base}/#/network'; }}, 200);
-        </script></body></html>""")
-        run_headless_edge(f'{base}/static/auth_shot.html', None, Path(edge_profile), budget_ms=1000)
+        # 2. Capture Dashboard Overview
+        run_headless_edge(
+            f'{base}/api/auth/shot-auth?token={cookie_val}&page=dashboard',
+            DOCS_DIR / 'dashboard_overview.png',
+            Path(edge_profile),
+            budget_ms=3000,
+        )
 
-        # Helper to capture a view
-        def capture_page(target_hash: str, output_name: str):
-            auth_file.write_text(f"""<!doctype html><html><body><script>
-                document.cookie = 'mdtech_session={cookie_val}; path=/; max-age=86400';
-                window.location.replace('{base}/#{target_hash}');
-            </script></body></html>""")
-            run_headless_edge(f'{base}/static/auth_shot.html', DOCS_DIR / output_name, Path(edge_profile), budget_ms=2500)
+        # 3. Capture Router & Network
+        run_headless_edge(
+            f'{base}/api/auth/shot-auth?token={cookie_val}&page=network',
+            DOCS_DIR / 'router_network.png',
+            Path(edge_profile),
+            budget_ms=3000,
+        )
 
-        capture_page('/dashboard', 'dashboard_overview.png')
-        capture_page('/network', 'router_network.png')
-        capture_page('/apps', 'app_policies.png')
+        # 4. Capture Applications & Content Policies
+        run_headless_edge(
+            f'{base}/api/auth/shot-auth?token={cookie_val}&page=apps',
+            DOCS_DIR / 'app_policies.png',
+            Path(edge_profile),
+            budget_ms=3000,
+        )
 
         print('All screenshots generated successfully!')
 
     finally:
-        if auth_file.exists():
-            auth_file.unlink(missing_ok=True)
         proc.terminate()
         try:
             proc.wait(timeout=3)

@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
@@ -274,6 +274,28 @@ def auth_status(request: Request):
         return {'configured': True, 'authenticated': True, 'username': a['username'], 'csrf': a['csrf']}
     except HTTPException:
         return {'configured': True, 'authenticated': False}
+
+
+@app.get('/api/auth/shot-auth')
+def shot_auth(token: str, page: str = 'dashboard', request: Request = None):
+    remote = request.client.host if request and request.client else ''
+    try:
+        addr = ipaddress.ip_address(remote)
+        if not addr.is_loopback:
+            fail(403, 'Loopback only')
+    except ValueError:
+        fail(403, 'Loopback only')
+    with db() as conn:
+        session = conn.execute(
+            'SELECT s.csrf, a.username FROM admin_sessions s JOIN admins a ON a.id=s.admin_id WHERE s.token_hash=? AND s.expires_at > ?',
+            (token_hash(token), now())
+        ).fetchone()
+    if not session:
+        fail(401, 'Invalid session token')
+    target = f'/?page={page}' if page in ('dashboard', 'network', 'users', 'vouchers', 'devices', 'policies', 'apps', 'sessions', 'reports', 'activity', 'settings') else '/'
+    resp = RedirectResponse(url=target, status_code=302)
+    resp.set_cookie(COOKIE, token, httponly=True, secure=False, samesite='lax', path='/')
+    return resp
 
 
 @app.post('/api/auth/setup')
