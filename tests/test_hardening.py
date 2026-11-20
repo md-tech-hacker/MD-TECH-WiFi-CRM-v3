@@ -125,3 +125,27 @@ def test_device_null_patch_does_not_raise_server_error(client, admin):
     for field in ('name', 'ip', 'blocked'):
         assert client.patch(f'/api/devices/{ident}', headers=admin, json={field:None}).status_code == 422
     assert client.patch(f'/api/devices/{ident}', headers=admin, json={'owner_id':None}).status_code == 200
+
+
+def test_gateway_key_brute_force_throttled(client):
+    for _ in range(10):
+        assert client.post('/api/integrations/heartbeat', headers={'X-Gateway-Key':'invalid_secret'}, json={'name':'test'}).status_code == 401
+    assert client.post('/api/integrations/heartbeat', headers={'X-Gateway-Key':'invalid_secret'}, json={'name':'test'}).status_code == 429
+
+
+def test_domain_with_port_matches_policy(client, admin):
+    client.post('/api/policies', headers=admin, json={'name':'Block YouTube','kind':'app','target':'youtube','action':'block'})
+    gh = {'X-Gateway-Key': client.post('/api/settings/gateway-key', headers=admin).json()['key']}
+    res = client.post('/api/integrations/authorize', headers=gh, json={'mac':'aa:bb:cc:dd:ee:01','domain':'www.youtube.com:443','require_active_session':False}).json()
+    assert res['allowed'] is False
+    assert 'Block YouTube' in res['reason']
+
+
+def test_ensure_record_table_whitelist():
+    import pytest
+    import app.main as main
+    from app.db import db
+    with db() as conn:
+        with pytest.raises(main.HTTPException) as exc:
+            main.ensure_record(conn, 'admins', 1)
+        assert exc.value.status_code == 500

@@ -1,0 +1,16 @@
+services:
+  crm:
+    build: .
+    container_name: mdtech-wifi-crm
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    environment:
+      - MDTECH_HOST=0.0.0.0
+      - MDTECH_PORT=8765
+    volumes:
+      - crm_data:/app/instance
+
+volumes:
+  crm_data:
+    driver: local

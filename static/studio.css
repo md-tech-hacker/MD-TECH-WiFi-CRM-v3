@@ -184,3 +184,12 @@ body{background:#f6f8fc;letter-spacing:-.08px}
  .gateway-card-label{font-size:8px;margin-bottom:5px}.gateway-card b{font-size:11px}
  .gateway-setup{margin-top:6px}.sidebar-bottom{padding-top:8px}
 }
+.vendor-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.vendor-badge.mikrotik{background:#e8f0fe;color:#1967d2;border:1px solid #c2d7fa}
+.vendor-badge.openwrt{background:#fff3e0;color:#e65100;border:1px solid #ffe0b2}
+.vendor-badge.pfsense,.vendor-badge.opnsense{background:#fce8e6;color:#c5221f;border:1px solid #fad2cf}
+.vendor-badge.unifi{background:#f1f3f4;color:#202124;border:1px solid #dadce0}
+.vendor-badge.omada{background:#e0f2f1;color:#00796b;border:1px solid #b2dfdb}
+.vendor-badge.generic_linux{background:#e6f4ea;color:#137333;border:1px solid #ceead6}
+.token-copy{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#f8fafd;border:1px solid #e1e8f5;border-radius:8px;margin-top:10px}
+.token-copy code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;color:#2563eb}

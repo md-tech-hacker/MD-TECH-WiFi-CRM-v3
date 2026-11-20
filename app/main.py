@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 import io
 import ipaddress
 import json
+import os
 import re
 import secrets
 import sqlite3
@@ -28,10 +29,11 @@ from .network import inspect_host_network, probe_router, open_windows_settings
 from .security import hash_password, new_token, rate_allowed, token_hash, utc_after, verify_password, voucher_digest
 
 COOKIE = 'mdtech_session'
-VERSION = '3.1.1'
+VERSION = '3.2.0'
 MAX_SESSION_MIN = 12 * 60
 DUMMY_PASSWORD_HASH = hash_password(new_token())
 MAC_RE = re.compile(r'^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$')
+ALLOWED_TABLES = {'users', 'vouchers', 'devices', 'guest_sessions', 'policies'}
 @asynccontextmanager
 async def lifespan(application: FastAPI):
     init_db()
@@ -46,8 +48,15 @@ app.mount('/static', StaticFiles(directory=str(ROOT / 'static')), name='static')
 async def security_headers(request: Request, call_next):
     if request.method not in ('GET', 'HEAD', 'OPTIONS'):
         origin = request.headers.get('origin')
-        if request.headers.get('sec-fetch-site') == 'cross-site' or (origin and origin != str(request.base_url).rstrip('/')):
+        if request.headers.get('sec-fetch-site') == 'cross-site':
             return Response('Cross-origin writes are not allowed', status_code=403)
+        if origin:
+            base = str(request.base_url).rstrip('/')
+            proto = request.headers.get('x-forwarded-proto', request.url.scheme)
+            host = request.headers.get('x-forwarded-host', request.headers.get('host', ''))
+            proxy_base = f"{proto}://{host}".rstrip('/') if host else ''
+            if origin != base and origin != proxy_base:
+                return Response('Cross-origin writes are not allowed', status_code=403)
     response = await call_next(request)
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
@@ -105,6 +114,8 @@ def valid_ip(ip):
 
 
 def ensure_record(conn, table, ident):
+    if table not in ALLOWED_TABLES:
+        fail(500, 'Invalid entity')
     if not conn.execute(f'SELECT id FROM {table} WHERE id=?', (ident,)).fetchone():
         fail(404, f'{table[:-1].capitalize()} not found')
 
@@ -214,7 +225,7 @@ class GatewayHeartbeat(BaseModel):
 
 
 class NetworkProfile(BaseModel):
-    platform: Literal['unconfigured', 'tplink_wr841n_v14', 'mikrotik', 'openwrt', 'opnsense', 'omada', 'other'] = 'unconfigured'
+    platform: Literal['unconfigured', 'mikrotik', 'openwrt', 'opnsense', 'pfsense', 'unifi', 'omada', 'generic_linux', 'tplink_wr841n_v14', 'other'] = 'unconfigured'
     router_name: str = Field(default='', max_length=100)
     management_ip: str = Field(default='', max_length=45)
     upstream_ssid: str = Field(default='', max_length=32)
@@ -269,7 +280,9 @@ def auth_status(request: Request):
 def setup(data: CreateAdmin, request: Request, response: Response):
     remote = request.client.host if request.client else ''
     try:
-        local = ipaddress.ip_address(remote).is_loopback
+        addr = ipaddress.ip_address(remote)
+        allow_docker = os.getenv('ALLOW_DOCKER_SETUP', '0') == '1' and addr.is_private
+        local = addr.is_loopback or allow_docker
     except ValueError:
         local = False
     if not local:
@@ -295,7 +308,8 @@ def create_login_session(username, response, request):
         conn.execute('INSERT INTO admin_sessions(admin_id,token_hash,csrf,expires_at,created_at) VALUES (?,?,?,?,?)',
                      (admin['id'], token_hash(token), csrf, utc_after(MAX_SESSION_MIN), now()))
         log(conn, 'Admin signed in', username, username, 'security')
-    response.set_cookie(COOKIE, token, httponly=True, secure=request.url.scheme == 'https', samesite='strict', max_age=MAX_SESSION_MIN*60, path='/')
+    is_secure = request.url.scheme == 'https' or request.headers.get('x-forwarded-proto') == 'https'
+    response.set_cookie(COOKIE, token, httponly=True, secure=is_secure, samesite='strict', max_age=MAX_SESSION_MIN*60, path='/')
     return {'authenticated': True, 'username': username, 'csrf': csrf}
 
 
@@ -676,11 +690,14 @@ def guest_login(data: PortalLogin, request: Request):
 
 
 def require_gateway(request: Request):
+    remote = request.client.host if request.client else 'unknown'
     key = request.headers.get('x-gateway-key', '')
     with db() as conn:
         enabled = setting(conn, 'gateway_enabled') == '1'
         expected = setting(conn, 'gateway_key_hash')
     if not enabled or not expected or not key or not secrets.compare_digest(token_hash(key), expected):
+        if not rate_allowed('gateway-auth-fail:' + remote, 10, 60):
+            fail(429, 'Too many failed gateway requests; please wait')
         fail(401, 'Gateway authentication required')
     return True
 
@@ -734,10 +751,19 @@ def check_router_connection(a=Depends(write_auth)):
     if not rate_allowed('router-check:' + str(a['id']), 6, 60):
         fail(429, 'Please wait before testing this connection again')
     with db() as conn:
-        address = json.loads(setting(conn, 'network_profile', '{}')).get('management_ip', '')
+        profile = json.loads(setting(conn, 'network_profile', '{}'))
+        address = profile.get('management_ip', '')
+        platform_choice = profile.get('platform', '')
     if not address:
         fail(422, 'Enter and save the router management IP first')
+    ports = (80, 443)
+    if platform_choice == 'mikrotik':
+        ports = (80, 443, 8728)
+    elif platform_choice in ('unifi', 'omada'):
+        ports = (80, 443, 8443)
     try:
+        result = probe_router(address, ports=ports) if ports != (80, 443) else probe_router(address)
+    except TypeError:
         result = probe_router(address)
     except ValueError as exc:
         fail(422, str(exc))
@@ -875,9 +901,9 @@ def export_csv(resource: str, a=Depends(auth)):
     sql_map = {
         'users': 'SELECT id,username,display_name,email,enabled,created_at,last_login_at FROM users',
         'devices': 'SELECT id,mac,name,ip,owner_id,blocked,source,first_seen,last_seen,rx_bytes,tx_bytes FROM devices',
-        'sessions': 'SELECT * FROM guest_sessions',
-        'policies': 'SELECT * FROM policies',
-        'activity': 'SELECT * FROM activity',
+        'sessions': 'SELECT id,user_id,voucher_id,device_id,client_ip,login_method,started_at,expires_at,ended_at,state,gateway_verified,rx_bytes,tx_bytes FROM guest_sessions',
+        'policies': 'SELECT id,name,kind,target,action,scope_type,scope_id,enabled,created_at FROM policies',
+        'activity': 'SELECT id,created_at,actor,category,action,detail FROM activity',
         'vouchers': 'SELECT id,code_hint,label,duration_minutes,data_limit_mb,max_uses,used_count,enabled,expires_at,created_at FROM vouchers'
     }
     if resource not in sql_map: fail(404, 'Unknown export')

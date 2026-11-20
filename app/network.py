@@ -17,14 +17,15 @@ _cached = None
 _cached_at = 0
 
 
-def probe_router(management_ip):
-    """Check only the two fixed web-admin ports on an explicitly saved LAN IP."""
+def probe_router(management_ip, ports=(80, 443)):
+    """Check web-admin and management ports on an explicitly saved LAN IP."""
     address = ipaddress.ip_address(management_ip)
     private_lan = address.version == 4 and any(address in ipaddress.ip_network(net) for net in ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'))
     if not private_lan:
         raise ValueError('Use the router’s private IPv4 LAN address for this connection check')
     reachable = []
-    for port in (80, 443):
+    target_ports = tuple(p for p in ports if isinstance(p, int) and 1 <= p <= 65535) or (80, 443)
+    for port in target_ports:
         try:
             with socket.create_connection((str(address), port), timeout=1.5):
                 reachable.append(port)
@@ -32,7 +33,7 @@ def probe_router(management_ip):
             pass
     return {'target': str(address), 'checked_at': now(), 'reachable_ports': reachable,
             'reachable': bool(reachable), 'router_identity_verified': False,
-            'message': 'A web administration port responded. Router identity and login are not verified.' if reachable else 'No web administration port responded. Check the IP, connection, firewall and router power.'}
+            'message': 'A management port responded. Router identity and login are not verified.' if reachable else 'No management port responded. Check the IP, connection, firewall and router power.'}
 
 
 def open_windows_settings(page):
@@ -90,7 +91,7 @@ def inspect_host_network(force=False):
             else:
                 result['wifi_status'] = 'not_connected'
             result['status'] = 'observed'
-            result['message'] = 'These are this computer’s network settings. A default gateway is not proof that it is your TP-Link router.'
+            result['message'] = 'These are this computer’s network settings. A default gateway is not proof that it is your access-control gateway or router.'
             if not ssid:
                 result['message'] += ' No active Wi-Fi SSID was detected; Wi-Fi may be disconnected, unavailable or restricted by Windows permissions.'
         except (OSError, subprocess.SubprocessError, ValueError, TypeError):

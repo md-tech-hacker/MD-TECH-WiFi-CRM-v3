@@ -40,14 +40,22 @@ def utc_after(minutes: int) -> str:
     return (datetime.now(timezone.utc) + timedelta(minutes=minutes)).isoformat(timespec='seconds')
 
 
+_voucher_secret: bytes | None = None
+_voucher_lock = Lock()
+
+
 def voucher_digest(code: str) -> str:
-    secret_file = DATA_DIR / 'voucher_secret.key'
-    if not secret_file.exists():
-        fd = os.open(secret_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        with os.fdopen(fd, 'wb') as f:
-            f.write(secrets.token_bytes(32))
-    secret = secret_file.read_bytes()
-    return hmac.new(secret, code.strip().upper().encode(), hashlib.sha256).hexdigest()
+    global _voucher_secret
+    if _voucher_secret is None:
+        with _voucher_lock:
+            if _voucher_secret is None:
+                secret_file = DATA_DIR / 'voucher_secret.key'
+                if not secret_file.exists():
+                    fd = os.open(secret_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+                    with os.fdopen(fd, 'wb') as f:
+                        f.write(secrets.token_bytes(32))
+                _voucher_secret = secret_file.read_bytes()
+    return hmac.new(_voucher_secret, code.strip().upper().encode(), hashlib.sha256).hexdigest()
 
 
 _attempts = defaultdict(deque)

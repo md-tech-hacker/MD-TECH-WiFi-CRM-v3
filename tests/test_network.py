@@ -125,3 +125,24 @@ def test_network_recheck_bypasses_cached_observation(client, admin, monkeypatch)
     monkeypatch.setattr(api,'inspect_host_network',inspect)
     assert client.get('/api/network/host?refresh=true').status_code==200
     inspect.assert_called_once_with(force=True)
+
+
+@pytest.mark.parametrize('platform_name',['mikrotik','openwrt','opnsense','pfsense','unifi','omada','generic_linux','other'])
+def test_all_router_platforms_accepted(client, admin, platform_name):
+    profile = {'platform': platform_name, 'management_ip': '192.168.1.1', 'operating_mode': 'ap', 'router_name': f'{platform_name} Test Gateway'}
+    assert client.patch('/api/network', headers=admin, json=profile).status_code == 200
+    data = client.get('/api/network').json()
+    assert data['profile']['platform'] == platform_name
+    assert data['profile']['router_name'] == f'{platform_name} Test Gateway'
+
+
+def test_probe_router_custom_ports(monkeypatch):
+    connection = Mock()
+    connection.__enter__ = Mock(return_value=connection)
+    connection.__exit__ = Mock(return_value=None)
+    connect = Mock(return_value=connection)
+    monkeypatch.setattr(network.socket, 'create_connection', connect)
+    result = network.probe_router('192.168.88.1', ports=(80, 443, 8728))
+    assert result['reachable'] is True
+    assert result['reachable_ports'] == [80, 443, 8728]
+    assert [c.args[0][1] for c in connect.call_args_list] == [80, 443, 8728]

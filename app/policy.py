@@ -30,8 +30,8 @@ def matches(kind, target, *, mac='', ip='', domain='', app=''):
         except ValueError:
             return False
     if kind == 'domain':
-        d = domain.lower().strip('. ')
-        t = value.strip('. ')
+        d = domain.lower().split(':')[0].strip('. ')
+        t = value.split(':')[0].strip('. ')
         return bool(d) and (d == t or d.endswith('.' + t))
     if kind == 'app':
         if app and app.lower() == value:

@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.2.0 — Universal Multi-Router Support & Public GitHub Release
+
+- **Universal Multi-Router Support**: Added first-class profiles, documentation, and dynamic address presets for MikroTik RouterOS, OpenWrt, pfSense, OPNsense, Ubiquiti UniFi, TP-Link Omada, and Generic Linux gateways.
+- **Reference Router Adapters**:
+  - `examples/mikrotik/mikrotik_hotspot_sync.py`: Automated sync daemon connecting MikroTik HotSpot to CRM sessions, heartbeats, and traffic accounting.
+  - `examples/openwrt/opennds_fas_server.py`: Forward Authentication Service (FAS) server connecting OpenWrt's openNDS captive portal to CRM voucher logins.
+  - `examples/linux_gateway/nftables_captive_portal.sh`: Script turning any Linux host or Raspberry Pi into a captive portal gateway using nftables.
+- **Dynamic Router Management UI**: Expanded "Router & network" page with dynamic presets, intelligent vendor defaults, custom port probing (80, 443, 8728, 8443), and contextual setup guidance.
+- **Universal Documentation**: Complete overhaul of `ROUTER_SETUP.md` and `README.md` into comprehensive multi-platform deployment guides.
+- **Cross-Platform Deployments**: Added `Dockerfile`, `docker-compose.yml`, and `start_linux.sh` alongside Windows batch launchers.
+- **Open-Source Repository Infrastructure**: Added GitHub Actions CI pipeline (`.github/workflows/ci.yml`), issue templates for bugs and features, `CONTRIBUTING.md`, `SECURITY.md`, and `.env.example`.
+
 ## 3.1.1 — Router setup, toolbar and feedback fixes
 
 - Replace browser confirmations with keyboard-accessible custom dialogs; add dismissible notifications with icons and timeout indicators.
